@@ -1,0 +1,34 @@
+###
+RewriteEngine On
+
+DirectoryIndex /react/logs/issue_logs/
+
+RewriteCond %{REQUEST_URI} ^/advs/.*
+RewriteRule ^([^/]*)/([^/]*).xml$ advs_xml.php?username=$2 [L] 
+
+#RewriteCond %{HTTP:X-Forwarded-Proto} !https
+#RewriteCond %{HTTP_HOST} ^www.prologistics.info
+#RewriteRule (.*) https://www.prologistics.info/$1 [R=301,L]
+
+#RewriteCond %{HTTP_HOST} ^prologistics.info
+#RewriteRule (.*) https://www.prologistics.info/$1 [R=301,L]
+
+#RewriteCond %{SERVER_PORT} ^443$
+#RewriteCond %{HTTPS} on
+#RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+RewriteRule ^$ /react/logs/issue_logs/ [L,R=301]
+
+RewriteRule ^([^/]*)/$ $1.php [L]
+RewriteRule ^react/([^/]*)/(.*)?$ react.php?controller=$1 [L]
+
+#RewriteRule ^shop_looks/([^/]*)/?$ react.php?controller=looks [L]
+#RewriteRule ^shop_article_banners/([^/]*)/?$ react.php?controller=article_banners [L]
+
+RewriteRule timestamp_filter/([^/]*)/([^/]*)/timestamp_filter.jpg$ timestamp_filter.php?date_from=$2&date_to=$2&active_user=$1&filter=Filter&img=1&div=100 [L]
+
+RewriteRule api/([^/]*)/([^/]*)/([^/]*)/?$ api.php?controller=$1&action=$2&param=$3&%{QUERY_STRING} [L]
+RewriteRule api/([^/]*)/([^/]*)/?$ api.php?controller=$1&action=$2&%{QUERY_STRING} [L]
+RewriteRule api/([^/]*)/?$ api.php?controller=$1&%{QUERY_STRING} [L]
+
+RewriteRule signature_ll_([^/]*)_([^/]*).png$ image.php?src=signature&picid=$2&x=200 [L]
