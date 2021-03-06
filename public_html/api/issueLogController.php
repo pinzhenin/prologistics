@@ -99,7 +99,15 @@ class issueLogController extends apiController
         if ($this->_input['shipping_country']) {
             $where[] = "(auction_par_varchar.value = '" . $this->_input['shipping_country'] . "' OR apv_rma.value = '" . $this->_input['shipping_country'] . "')";
         }
-        
+        if ($this->_input['by_comment']) {
+            $byCommentString = preg_replace(
+                ['/\\\\/', "/([%_'])/"],
+                ['\\\\\\\\\\\\\\\\', '\\\\$1'],
+                $this->_input['by_comment']
+            );
+            $where[] = "(issuelog.issue LIKE '%{$byCommentString}%' OR (comments.content LIKE '%{$byCommentString}%' AND comments.obj LIKE 'issuelog%'))";
+        }
+
         $this->_result['issue_list'] = $this->_dbr->getAll("            
             SELECT 
                 issuelog.*
@@ -211,7 +219,7 @@ class issueLogController extends apiController
                     AND New_value != 'open'
                     ORDER BY Updated) AS not_open_dates
                 , issuelog.obj,
-                    CASE obj
+                    CASE issuelog.obj
                         WHEN 'shop_cat' THEN 'Shop catalogue: '
                         WHEN 'shipping_plan' THEN 'Shipping plan: '
                         WHEN 'condensed_sa' THEN 'SA: '
@@ -227,7 +235,7 @@ class issueLogController extends apiController
                         WHEN 'rating' THEN 'Rating: '
                         WHEN 'insurance' THEN 'Insurance: '
                     END AS where_did,
-                    CASE obj
+                    CASE issuelog.obj
                         WHEN 'shop_cat' THEN CONCAT('shop_cat.php?cat_id=',issuelog.obj_id)
                         WHEN 'shipping_plan' THEN CONCAT('shipping_plan.php?id=',issuelog.obj_id)
                         WHEN 'condensed_sa' THEN CONCAT('react/condensed/condensed_sa/',issuelog.obj_id,'/')
@@ -256,6 +264,7 @@ class issueLogController extends apiController
             LEFT JOIN auction_par_varchar apv_rma ON rma.auction_number = apv_rma.auction_number AND rma.txnid = apv_rma.txnid AND apv_rma.`key` = 'country_shipping'
             LEFT JOIN total_log tl ON tl.`Table_name` = 'issuelog' AND tl.Field_name = 'id' AND tl.TableID = issuelog.id
             LEFT JOIN issuelog_type ON issuelog_type.issuelog_id = issuelog.id
+            LEFT JOIN comments ON comments.obj_id = issuelog.id
                 WHERE 1 " . ($where ? ' AND ' . implode(' AND ', $where) : '') . "
                     GROUP BY added_time
                     ORDER BY added_time DESC");
