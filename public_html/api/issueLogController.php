@@ -107,6 +107,7 @@ class issueLogController extends apiController
             );
             $where[] = "(issuelog.issue LIKE '%{$byCommentString}%' OR (comments.content LIKE '%{$byCommentString}%' AND comments.obj LIKE 'issuelog%'))";
         }
+
         $this->_result['issue_list'] = $this->_dbr->getAll("            
             SELECT 
                 issuelog.*
