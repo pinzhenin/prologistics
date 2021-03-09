@@ -4,7 +4,7 @@
  * @description api react for issue log
  * @author Ilya Khalizov
  * @version 1.0
- * 
+ *
  * @var $where
  * @var $this
  * @var $allow_change_filds
@@ -15,12 +15,12 @@
 
 class issueLogController extends apiController
 {
-    
+
     /**
      * equels issue id
      */
     private $_page_id;
-    
+
     public function __construct()
     {
         parent::__construct();
@@ -32,18 +32,18 @@ class issueLogController extends apiController
             $this->_page_id = (int)$this->_input['page_id'];
         }
     }
-    
+
     /**
      * @description get issue's log
      * @return object
      */
     public function listAction()
-    {   
+    {
         /**
          * @description filter query
         */
         $where = [];
-        
+
         if ($this->_input['status']) {
             $where[] = " issuelog.status = '" . $this->_input['status'] . "'";
         }
@@ -68,7 +68,7 @@ class issueLogController extends apiController
         if ($this->_input['date_from'] && $this->_input['date_to']) {
             $where[] = "tl.Updated >= '" . $this->_input['date_from'] . " 00:00:00'";
             $where[] = "tl.Updated <= '" . $this->_input['date_to'] . " 23:59:59'";
-        } 
+        }
         if ($this->_input['date_from'] && !$this->_input['date_to']) {
             $where[] = "tl.Updated >= '" . $this->_input['date_from'] . " 00:00:00'";
         }
@@ -105,7 +105,13 @@ class issueLogController extends apiController
                 ['\\\\\\\\\\\\\\\\', '\\\\$1'],
                 $this->_input['by_comment']
             );
-            $where[] = "(issuelog.issue LIKE '%{$byCommentString}%' OR (comments.content LIKE '%{$byCommentString}%' AND comments.obj LIKE 'issuelog%'))";
+            $where[] = <<<SQL
+(
+    issuelog.issue LIKE '%{$byCommentString}%' 
+    OR (comments.content LIKE '%{$byCommentString}%' AND comments.obj LIKE 'issuelog%')
+    OR (alarms.comment LIKE '%{$byCommentString}%' AND alarms.type LIKE 'issuelog%')
+)
+SQL;
         }
 
         $this->_result['issue_list'] = $this->_dbr->getAll("            
@@ -265,6 +271,7 @@ class issueLogController extends apiController
             LEFT JOIN total_log tl ON tl.`Table_name` = 'issuelog' AND tl.Field_name = 'id' AND tl.TableID = issuelog.id
             LEFT JOIN issuelog_type ON issuelog_type.issuelog_id = issuelog.id
             LEFT JOIN comments ON comments.obj_id = issuelog.id
+            LEFT JOIN alarms ON alarms.type_id = issuelog.id
                 WHERE 1 " . ($where ? ' AND ' . implode(' AND ', $where) : '') . "
                     GROUP BY added_time
                     ORDER BY added_time DESC");
@@ -323,23 +330,23 @@ class issueLogController extends apiController
             JOIN total_log tl ON tl.`Table_name` = 'issuelog' AND tl.Field_name = 'id' AND tl.TableID = issuelog.id
             JOIN users ON users.system_username = tl.username
             WHERE users.username = '" . $this->_loggedUser->get('username') . "' ");
-        
+
         $this->_result['allow_change_filds_creator'] = $currentuser_issues;
         $this->_result['admin'] = $this->_loggedUser->get('admin');
         $this->output();
     }
-     
+
     /**
      * @description change responsible person
      * @return json
-     * 
+     *
      * @var $this
      * @var $query
      * @var $page_id
      * @var $resp_person
      * @var $user
-     * 
-     */ 
+     *
+     */
     public function changeResponsibleAction()
     {
         if ($this->_input['resp_person']) {
@@ -358,18 +365,18 @@ class issueLogController extends apiController
         }
         $this->output();
     }
-    
+
     /**
      * @description change solving responsible person
      * @return json
-     * 
+     *
      * @var $this
      * @var $query
      * @var $page_id
      * @var $resp_person
      * @var $user
-     * 
-     */ 
+     *
+     */
     public function changeSolvingResponsibleAction()
     {
         if ($this->checkPermision()) {
@@ -390,16 +397,16 @@ class issueLogController extends apiController
             $this->output();
         }
     }
-    
+
     /**
-     * @description change department 
+     * @description change department
      * @return json
-     * 
+     *
      * @var $this
      * @var $query
      * @var $departament
-     * 
-     */ 
+     *
+     */
     public function changeDepartmentAction()
     {
         if ($this->checkPermision()) {
@@ -414,20 +421,20 @@ class issueLogController extends apiController
             $this->output();
         }
     }
-    
+
     /**
-     * set due date 
+     * set due date
      * @var $due_date
      * @var $this
      */
-    public function setDueDateAction() 
+    public function setDueDateAction()
     {
         $due_date = mysql_real_escape_string($this->_input['due_date']);
         $this->_db->query("update issuelog set due_date = '$due_date' where id = $this->_page_id");
         $this->_result['success'] = true;
         $this->output();
     }
-    
+
     /**
      * delete due date
      * @var $this
@@ -438,16 +445,16 @@ class issueLogController extends apiController
         $this->_result['success'] = true;
         $this->output();
     }
-    
+
     /**
      * @description change type
      * @return json
-     * 
+     *
      * @var $this
      * @var $query
      * @var $issue_type_id
-     * 
-     */ 
+     *
+     */
     public function changeIssueTypeAction()
     {
         if ($this->checkPermision()) {
@@ -460,7 +467,7 @@ class issueLogController extends apiController
             $this->output();
         }
     }
-    
+
     /**
      * @description save the issue images and files
      * @var $images
@@ -477,7 +484,7 @@ class issueLogController extends apiController
         $images = $_FILES['imgs'] ? $_FILES['imgs'] : [];
         if ($images) {
             $imgs_qty = count($images['tmp_name'])-1;
-            if ($imgs_qty >= 0) { 
+            if ($imgs_qty >= 0) {
                 for(; $imgs_qty >= 0; $imgs_qty--) {
                     $file_name = $images['name'][$imgs_qty];
                     $file_extension = pathinfo($file_name, PATHINFO_EXTENSION);
@@ -504,12 +511,12 @@ class issueLogController extends apiController
         }
         $this->getIssueImagesAction();
     }
-    
+
     /**
      * @description delete the issue images and files
      */
     public function deleteImagesAction()
-    {          
+    {
         $images = $this->_input['images_delete'] ? $this->_input['images_delete'] : [];
         foreach ($images as $image) {
             $image_hash = $this->_dbr->getOne("SELECT `hash` FROM issue_pic WHERE id = $image");
@@ -527,9 +534,9 @@ class issueLogController extends apiController
      * @return object
      */
     public function getIssueImagesAction()
-    {   
+    {
         global $smarty;
-        $images_all = [];        
+        $images_all = [];
         $width = $this->_input['width'];
         $images = $this->_dbr->getAll("SELECT id FROM issue_pic WHERE `type` = 'pic' AND issuelog_id = $this->_page_id");
         $i = 0;
@@ -556,7 +563,7 @@ class issueLogController extends apiController
         $this->_result['files'] = $files_urls;
         $this->output();
     }
-    
+
     /**
      * get issue types
      * @return object
@@ -569,7 +576,7 @@ class issueLogController extends apiController
         $this->_result['default_issue_type'] = $default_issue_type;
         $this->output();
     }
-    
+
     /**
      * set issue types
      * @return object
@@ -595,7 +602,7 @@ class issueLogController extends apiController
         $this->_result['success'] = true;
         $this->getIssueTypesAction();
     }
-    
+
     /**
      * @description send email and log it when choose new responsible person
      */
@@ -604,7 +611,7 @@ class issueLogController extends apiController
         if ($type == 'responsible') {
             $person = $this->_input['resp_person'];
             $field = 'resp_username';
-        } 
+        }
         if ($type == 'solving') {
             $person = $this->_input['solving_resp_person'];
             $field = 'solving_resp_username';
@@ -627,12 +634,12 @@ class issueLogController extends apiController
             }
         }
     }
-    
+
     /**
      * get allowed to change issue status, department and responsible person in issue
      * @return boolean
      */
-    private function checkPermision() 
+    private function checkPermision()
     {
         $allow_change_filds = false;
         if ($this->_input['page_id']) {
@@ -650,7 +657,7 @@ class issueLogController extends apiController
         }
         return $allow_change_filds;
     }
-    
+
     /**
      * print checked issues
      * @var $issue_ids
@@ -660,9 +667,9 @@ class issueLogController extends apiController
      * @var $content
      * @var $html
      */
-    public function issuesPrintAction() 
+    public function issuesPrintAction()
     {
-        
+
         global $smarty;
         $issue_ids = $this->_input['issue_ids'];
         $issue_ids = implode(',', $issue_ids);
@@ -719,7 +726,7 @@ class issueLogController extends apiController
                 GROUP BY added_time
                 ORDER BY added_time DESC
         ");
-        
+
         if ($issues) {
             $smarty->assign('issues', $issues);
             $html = $smarty->fetch('issues.tpl');
