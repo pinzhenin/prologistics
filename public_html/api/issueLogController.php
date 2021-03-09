@@ -108,8 +108,8 @@ class issueLogController extends apiController
             $where[] = <<<SQL
 (
     issuelog.issue LIKE '%{$byCommentString}%' 
-    OR (comments.content LIKE '%{$byCommentString}%' AND comments.obj LIKE 'issuelog%')
-    OR (alarms.comment LIKE '%{$byCommentString}%' AND alarms.type LIKE 'issuelog%')
+    OR (comments.content LIKE '%{$byCommentString}%' AND comments.obj LIKE '%issuelog%')
+    OR (alarms.comment LIKE '%{$byCommentString}%')
 )
 SQL;
         }
@@ -271,7 +271,7 @@ SQL;
             LEFT JOIN total_log tl ON tl.`Table_name` = 'issuelog' AND tl.Field_name = 'id' AND tl.TableID = issuelog.id
             LEFT JOIN issuelog_type ON issuelog_type.issuelog_id = issuelog.id
             LEFT JOIN comments ON comments.obj_id = issuelog.id
-            LEFT JOIN alarms ON alarms.type_id = issuelog.id
+            LEFT JOIN alarms ON alarms.type = 'issuelog' AND alarms.type_id = issuelog.id
                 WHERE 1 " . ($where ? ' AND ' . implode(' AND ', $where) : '') . "
                     GROUP BY added_time
                     ORDER BY added_time DESC");
